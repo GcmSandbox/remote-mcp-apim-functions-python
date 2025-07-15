@@ -17,7 +17,6 @@ param environmentName string
 param location string
 param vnetEnabled bool
 param apiServiceName string = ''
-param apiUserAssignedIdentityName string = ''
 param applicationInsightsName string = ''
 param appServicePlanName string = ''
 param logAnalyticsName string = ''
@@ -69,8 +68,7 @@ module oauthAPIModule './app/apim-oauth/oauth.bicep' = {
     entraAppDisplayName: !empty(mcpEntraApplicationDisplayName) ? mcpEntraApplicationDisplayName : 'MCP-OAuth-${abbrs.applications}${apimResourceToken}'
     apimServiceName: apimService.name
     oauthScopes: oauth_scopes
-    entraAppUserAssignedIdentityPrincipleId: apimService.outputs.entraAppUserAssignedIdentityPrincipleId
-    entraAppUserAssignedIdentityClientId: apimService.outputs.entraAppUserAssignedIdentityClientId
+    entraAppUserAssignedIdentityPrincipleId: apimService.outputs.principalId
   }
 }
 
@@ -86,18 +84,6 @@ module mcpApiModule './app/apim-mcp/mcp-api.bicep' = {
     api
     oauthAPIModule
   ]
-}
-
-
-// User assigned managed identity to be used by the function app to reach storage and service bus
-module apiUserAssignedIdentity './core/identity/userAssignedIdentity.bicep' = {
-  name: 'apiUserAssignedIdentity'
-  scope: rg
-  params: {
-    location: location
-    tags: tags
-    identityName: !empty(apiUserAssignedIdentityName) ? apiUserAssignedIdentityName : '${abbrs.managedIdentityUserAssignedIdentities}api-${resourceToken}'
-  }
 }
 
 // The application backend is a function app
@@ -128,8 +114,6 @@ module api './app/api.bicep' = {
     runtimeVersion: '3.11'
     storageAccountName: storage.outputs.name
     deploymentStorageContainerName: deploymentStorageContainerName
-    identityId: apiUserAssignedIdentity.outputs.identityId
-    identityClientId: apiUserAssignedIdentity.outputs.identityClientId
     appSettings: {
     }
     virtualNetworkSubnetId: !vnetEnabled ? '' : serviceVirtualNetwork.outputs.appSubnetID
@@ -162,7 +146,7 @@ module blobRoleAssignmentApi 'app/storage-Access.bicep' = {
   params: {
     storageAccountName: storage.outputs.name
     roleDefinitionID: StorageBlobDataOwner
-    principalID: apiUserAssignedIdentity.outputs.identityPrincipalId
+    principalID: api.outputs.SERVICE_API_IDENTITY_PRINCIPAL_ID
   }
 }
 
@@ -173,7 +157,7 @@ module queueRoleAssignmentApi 'app/storage-Access.bicep' = {
   params: {
     storageAccountName: storage.outputs.name
     roleDefinitionID: StorageQueueDataContributor
-    principalID: apiUserAssignedIdentity.outputs.identityPrincipalId
+    principalID: api.outputs.SERVICE_API_IDENTITY_PRINCIPAL_ID
   }
 }
 
@@ -222,7 +206,7 @@ module appInsightsRoleAssignmentApi './core/monitor/appinsights-access.bicep' = 
   params: {
     appInsightsName: monitoring.outputs.applicationInsightsName
     roleDefinitionID: monitoringRoleDefinitionId
-    principalID: apiUserAssignedIdentity.outputs.identityPrincipalId
+    principalID: api.outputs.SERVICE_API_IDENTITY_PRINCIPAL_ID
   }
 }
 

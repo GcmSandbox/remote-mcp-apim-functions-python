@@ -46,9 +46,6 @@ param appInsightsInstrumentationKey string = ''
 @description('The resource ID for Application Insights')
 param appInsightsId string = ''
 
-@description('The name of the user-assigned managed identity used as entra app FIC')
-param entraAppUserAssignedIdentityName string = 'entra-app-user-assigned-identity'
-
 // ------------------
 //    VARIABLES
 // ------------------
@@ -57,12 +54,6 @@ param entraAppUserAssignedIdentityName string = 'entra-app-user-assigned-identit
 // ------------------
 //    RESOURCES
 // ------------------
-
-// Create a user-assigned managed identity
-resource entraAppUserAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: entraAppUserAssignedIdentityName
-  location: location
-}
 
 // https://learn.microsoft.com/azure/templates/microsoft.apimanagement/service
 resource apimService 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
@@ -77,11 +68,7 @@ resource apimService 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
     publisherName: publisherName
   }
   identity: {
-    type: 'SystemAssigned, UserAssigned'
-    userAssignedIdentities: {
-      // BCP037: Not yet added to latest API:
-      '${entraAppUserAssignedIdentity.id}': {}
-    } 
+    type: 'SystemAssigned'
   }
 }
 
@@ -108,5 +95,3 @@ output id string = apimService.id
 output name string = apimService.name
 output principalId string = apimService.identity.principalId
 output gatewayUrl string = apimService.properties.gatewayUrl
-output entraAppUserAssignedIdentityPrincipleId string = entraAppUserAssignedIdentity.properties.principalId
-output entraAppUserAssignedIdentityClientId string = entraAppUserAssignedIdentity.properties.clientId

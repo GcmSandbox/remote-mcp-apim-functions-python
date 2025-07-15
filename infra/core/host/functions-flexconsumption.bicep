@@ -8,9 +8,9 @@ param appServicePlanId string
 param storageAccountName string
 param virtualNetworkSubnetId string = ''
 @allowed(['SystemAssigned', 'UserAssigned'])
-param identityType string
-@description('User assigned identity name')
-param identityId string
+param identityType string = 'SystemAssigned'
+@description('User assigned identity name - only used if identityType is UserAssigned')
+param identityId string = ''
 
 // Runtime Properties
 @allowed([
@@ -36,7 +36,9 @@ resource functions 'Microsoft.Web/sites@2023-12-01' = {
   location: location
   tags: tags
   kind: kind
-  identity: {
+  identity: identityType == 'SystemAssigned' ? {
+    type: 'SystemAssigned'
+  } : {
     type: identityType
     userAssignedIdentities: { 
       '${identityId}': {}
@@ -51,7 +53,7 @@ resource functions 'Microsoft.Web/sites@2023-12-01' = {
           value: '${stg.properties.primaryEndpoints.blob}${deploymentStorageContainerName}'
           authentication: {
             type: identityType == 'SystemAssigned' ? 'SystemAssignedIdentity' : 'UserAssignedIdentity'
-            userAssignedIdentityResourceId: identityType == 'UserAssigned' ? identityId : '' 
+            userAssignedIdentityResourceId: identityType == 'UserAssigned' ? identityId : null
           }
         }
       }
@@ -84,4 +86,4 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing
 
 output name string = functions.name
 output uri string = 'https://${functions.properties.defaultHostName}'
-output identityPrincipalId string = identityType == 'SystemAssigned' ? functions.identity.principalId : ''
+output identityPrincipalId string = identityType == 'SystemAssigned' ? functions.identity.principalId : functions.identity.userAssignedIdentities[identityId].principalId

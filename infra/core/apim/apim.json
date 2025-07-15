@@ -1,0 +1,139 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.36.177.2456",
+      "templateHash": "1351661882175985724"
+    }
+  },
+  "parameters": {
+    "apiManagementName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the API Management instance. Defaults to \"apim-<resourceSuffix>\"."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "The location of the API Management instance. Defaults to the resource group location."
+      }
+    },
+    "publisherEmail": {
+      "type": "string",
+      "defaultValue": "noreply@microsoft.com",
+      "metadata": {
+        "description": "The email address of the publisher. Defaults to \"noreply@microsoft.com\"."
+      }
+    },
+    "publisherName": {
+      "type": "string",
+      "defaultValue": "Microsoft",
+      "metadata": {
+        "description": "The name of the publisher. Defaults to \"Microsoft\"."
+      }
+    },
+    "apimLoggerName": {
+      "type": "string",
+      "defaultValue": "apim-logger",
+      "metadata": {
+        "description": "Name of the APIM Logger"
+      }
+    },
+    "apimLoggerDescription": {
+      "type": "string",
+      "defaultValue": "APIM Logger for OpenAI API",
+      "metadata": {
+        "description": "Description of the APIM Logger"
+      }
+    },
+    "apimSku": {
+      "type": "string",
+      "defaultValue": "Basicv2",
+      "allowedValues": [
+        "Consumption",
+        "Developer",
+        "Basic",
+        "Basicv2",
+        "Standard",
+        "Standardv2",
+        "Premium"
+      ],
+      "metadata": {
+        "description": "The pricing tier of this API Management service"
+      }
+    },
+    "appInsightsInstrumentationKey": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "The instrumentation key for Application Insights"
+      }
+    },
+    "appInsightsId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "The resource ID for Application Insights"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ApiManagement/service",
+      "apiVersion": "2024-06-01-preview",
+      "name": "[parameters('apiManagementName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "[parameters('apimSku')]",
+        "capacity": 1
+      },
+      "properties": {
+        "publisherEmail": "[parameters('publisherEmail')]",
+        "publisherName": "[parameters('publisherName')]"
+      },
+      "identity": {
+        "type": "SystemAssigned"
+      }
+    },
+    {
+      "condition": "[and(not(empty(parameters('appInsightsId'))), not(empty(parameters('appInsightsInstrumentationKey'))))]",
+      "type": "Microsoft.ApiManagement/service/loggers",
+      "apiVersion": "2021-12-01-preview",
+      "name": "[format('{0}/{1}', parameters('apiManagementName'), parameters('apimLoggerName'))]",
+      "properties": {
+        "credentials": {
+          "instrumentationKey": "[parameters('appInsightsInstrumentationKey')]"
+        },
+        "description": "[parameters('apimLoggerDescription')]",
+        "isBuffered": false,
+        "loggerType": "applicationInsights",
+        "resourceId": "[parameters('appInsightsId')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ApiManagement/service', parameters('apiManagementName'))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "id": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.ApiManagement/service', parameters('apiManagementName'))]"
+    },
+    "name": {
+      "type": "string",
+      "value": "[parameters('apiManagementName')]"
+    },
+    "principalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ApiManagement/service', parameters('apiManagementName')), '2024-06-01-preview', 'full').identity.principalId]"
+    },
+    "gatewayUrl": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ApiManagement/service', parameters('apiManagementName')), '2024-06-01-preview').gatewayUrl]"
+    }
+  }
+}

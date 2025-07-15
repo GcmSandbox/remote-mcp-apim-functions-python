@@ -12,7 +12,7 @@ param tenantId string = tenant().tenantId
 @description('The OAuth callback URL for the API Management service')
 param apimOauthCallback string
 
-@description('The principle id of the user-assigned managed identity')
+@description('The principle id of the APIM system-assigned managed identity')
 param userAssignedIdentityPrincipleId string
 
 var loginEndpoint = environment().authentication.loginEndpoint
@@ -40,7 +40,7 @@ resource entraApp 'Microsoft.Graph/applications@v1.0' = {
 
   resource fic 'federatedIdentityCredentials@v1.0' = {
     name: '${entraApp.uniqueName}/msiAsFic'
-    description: 'Trust the user-assigned MI as a credential for the app'
+    description: 'Trust the APIM system-assigned MI as a credential for the app'
     audiences: [
        'api://AzureADTokenExchange'
     ]
