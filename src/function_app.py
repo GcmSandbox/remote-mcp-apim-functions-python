@@ -1,3 +1,4 @@
+
 from dataclasses import dataclass
 import json
 import logging
@@ -101,3 +102,26 @@ def save_snippet(file: func.Out[str], context) -> str:
     file.set(snippet_content_from_args)
     logging.info("Saved snippet: %s", snippet_content_from_args)
     return f"Snippet '{snippet_content_from_args}' saved successfully"
+
+# --- HTTP triggers for store and fetch blob at the end of the file ---
+
+# Add HTTP trigger to store a blob by name
+@app.route(route="store/{blobname}", methods=["POST"])
+@app.generic_output_binding(arg_name="outputblob", type="blob", connection="AzureWebJobsStorage", path="clients/{blobname}")
+def store_blob(req: func.HttpRequest, blobname: str, outputblob: func.Out[bytes]) -> func.HttpResponse:
+    try:
+        content = req.get_body()
+        outputblob.set(content)
+        return func.HttpResponse(f"Stored blob: {blobname}", status_code=200)
+    except Exception as e:
+        return func.HttpResponse(f"Error storing blob: {str(e)}", status_code=500)
+
+# Add HTTP trigger to fetch a blob by name
+@app.route(route="fetch/{blobname}", methods=["GET"])
+@app.generic_input_binding(arg_name="inputblob", type="blob", connection="AzureWebJobsStorage", path="clients/{blobname}")
+def fetch_blob(req: func.HttpRequest, blobname: str, inputblob: func.InputStream) -> func.HttpResponse:
+    try:
+        content = inputblob.read()
+        return func.HttpResponse(content, status_code=200)
+    except Exception as e:
+        return func.HttpResponse(f"Blob '{blobname}' not found.", status_code=404)

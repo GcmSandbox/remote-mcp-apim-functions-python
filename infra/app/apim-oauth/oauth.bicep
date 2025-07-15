@@ -181,6 +181,20 @@ resource MCPServerNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-0
   }
 }
 
+// Add Function App Base URL named value
+@description('The base URL of the function app')
+param functionAppBaseUrl string
+
+resource FunctionAppBaseUrlNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-08-01' = {
+  parent: apimService
+  name: 'FunctionAppBaseUrl'
+  properties: {
+    displayName: 'FunctionAppBaseUrl'
+    value: functionAppBaseUrl
+    secret: false
+  }
+}
+
 // Create the OAuth API
 resource oauthApi 'Microsoft.ApiManagement/service/apis@2021-08-01' = {
   parent: apimService

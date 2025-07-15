@@ -71,6 +71,7 @@ module oauthAPIModule './app/apim-oauth/oauth.bicep' = {
     oauthScopes: oauth_scopes
     entraAppUserAssignedIdentityPrincipleId: apimService.outputs.entraAppUserAssignedIdentityPrincipleId
     entraAppUserAssignedIdentityClientId: apimService.outputs.entraAppUserAssignedIdentityClientId
+    functionAppBaseUrl: api.outputs.SERVICE_API_URI
   }
 }
 
