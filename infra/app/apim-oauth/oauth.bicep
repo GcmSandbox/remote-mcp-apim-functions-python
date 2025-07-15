@@ -8,8 +8,11 @@ param location string
 @description('The required scopes for authorization')
 param oauthScopes string
 
-@description('The principle id of the APIM system-assigned managed identity for Entra app')
+@description('The principle id of the user-assigned managed identity for Entra app')
 param entraAppUserAssignedIdentityPrincipleId string
+
+@description('The client ID of the user-assigned managed identity for Entra app')
+param entraAppUserAssignedIdentityClientId string
 
 @description('The name of the Entra application')
 param entraAppUniqueName string
@@ -24,7 +27,11 @@ resource apimService 'Microsoft.ApiManagement/service@2021-08-01' existing = {
   name: apimServiceName
 }
 
-// Create system-assigned managed identity for crypto script by using APIM service principal
+// Create user-assigned managed identity for crypto script
+resource cryptoScriptIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' = {
+  name: '${apimServiceName}-crypto-script-identity'
+  location: location
+}
 
 module entraApp './entra-app.bicep' = {
   name: 'entraApp'
@@ -36,12 +43,12 @@ module entraApp './entra-app.bicep' = {
   }
 }
 
-// Role assignment for APIM system-assigned identity to manage APIM named values
+// Role assignment for the crypto script identity to manage APIM named values
 resource cryptoScriptApimRoleAssignment 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(resourceGroup().id, apimService.name, 'APIM Contributor')
+  name: guid(resourceGroup().id, cryptoScriptIdentity.id, 'APIM Contributor')
   scope: apimService
   properties: {
-    principalId: apimService.identity.principalId
+    principalId: cryptoScriptIdentity.properties.principalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '312a565d-c81f-4fd8-895a-4e21e48d571c')
     principalType: 'ServicePrincipal'
   }
@@ -54,7 +61,10 @@ resource cryptoValuesScript 'Microsoft.Resources/deploymentScripts@2020-10-01' =
   location: location
   kind: 'AzurePowerShell'
   identity: {
-    type: 'SystemAssigned'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${cryptoScriptIdentity.id}': {}
+    }
   }
   properties: {
     azPowerShellVersion: '7.0'
@@ -89,16 +99,6 @@ resource cryptoValuesScript 'Microsoft.Resources/deploymentScripts@2020-10-01' =
   }
 }
 
-// Role assignment for deployment script system-assigned identity to manage APIM named values  
-resource deploymentScriptApimRoleAssignment 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(resourceGroup().id, 'generateCryptoValues', apimServiceName, 'APIM Contributor')
-  scope: apimService
-  properties: {
-    principalId: reference(cryptoValuesScript.id, cryptoValuesScript.apiVersion, 'full').identity.principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '312a565d-c81f-4fd8-895a-4e21e48d571c')
-    principalType: 'ServicePrincipal'
-  }
-}
 
 // Define the Named Values
 resource EntraIDTenantIdNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-08-01' = {
@@ -254,7 +254,6 @@ resource oauthCallbackPolicy 'Microsoft.ApiManagement/service/apis/operations/po
   }
   dependsOn: [
     cryptoValuesScript
-    deploymentScriptApimRoleAssignment
   ]
 }
 

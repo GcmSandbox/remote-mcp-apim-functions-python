@@ -68,7 +68,8 @@ module oauthAPIModule './app/apim-oauth/oauth.bicep' = {
     entraAppDisplayName: !empty(mcpEntraApplicationDisplayName) ? mcpEntraApplicationDisplayName : 'MCP-OAuth-${abbrs.applications}${apimResourceToken}'
     apimServiceName: apimService.name
     oauthScopes: oauth_scopes
-    entraAppUserAssignedIdentityPrincipleId: apimService.outputs.principalId
+    entraAppUserAssignedIdentityPrincipleId: apimService.outputs.entraAppUserAssignedIdentityPrincipleId
+    entraAppUserAssignedIdentityClientId: apimService.outputs.entraAppUserAssignedIdentityClientId
   }
 }
 
