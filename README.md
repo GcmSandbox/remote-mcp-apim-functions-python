@@ -69,29 +69,31 @@ The infrastructure provisions the following Azure resources:
 #### Core Gateway Infrastructure
 - **Azure API Management (APIM)** - The central security gateway that exposes both OAuth and MCP APIs
   - **SKU**: BasicV2 (configurable)
-  - **Identity**: System-assigned and user-assigned managed identities
+  - **Identity**: System-assigned managed identity
   - **Purpose**: Handles authentication flows, request validation, and secure proxying to backend services
 
 #### Backend Compute
 - **Azure Function App** - Hosts the MCP server implementation
   - **Runtime**: Python 3.11 on Flex Consumption plan
-  - **Authentication**: Function-level authentication with managed identity integration
+  - **Authentication**: Function-level authentication with system-assigned managed identity integration
   - **Purpose**: Executes MCP tools and operations (snippet management in this example)
 
 #### Storage and Data
 - **Azure Storage Account** - Provides multiple storage functions
   - **Function hosting**: Stores function app deployment packages
   - **Application data**: Blob container for snippet storage
-  - **Security**: Configured with managed identity access and optional private endpoints
+  - **Security**: Configured with system-assigned managed identity access and optional private endpoints
 
 #### Security and Identity
-- **User-Assigned Managed Identity** - Enables secure service-to-service authentication
-  - **Purpose**: Allows Function App to access Storage and Application Insights without secrets
+- **System-Assigned Managed Identities** - Enables secure service-to-service authentication
+  - **Purpose**: Allows Function App and APIM to access Storage and Application Insights without secrets
   - **Permissions**: Storage Blob Data Owner, Storage Queue Data Contributor, Monitoring Metrics Publisher
+  - **Lifecycle**: Automatically managed and tied to the resource lifecycle
 
 - **Entra ID Application Registration** - OAuth2/OpenID Connect client for authentication
   - **Purpose**: Enables third-party authorization flow per MCP specification
   - **Configuration**: PKCE-enabled public client with custom redirect URIs
+  - **Integration**: Uses APIM system-assigned identity for federated identity credentials
 
 #### Monitoring and Observability
 - **Application Insights** - Provides telemetry and monitoring
@@ -117,10 +119,11 @@ The infrastructure provisions the following Azure resources:
 - Automatic scaling based on demand
 - Built-in monitoring and diagnostics
 
-**Managed Identities** eliminate the need for:
+**System-Assigned Managed Identities** eliminate the need for:
 - Service credentials management
 - Secret rotation processes
 - Credential exposure risks
+- Manual identity lifecycle management
 
 ## Azure API Management Configuration Details
 
@@ -166,7 +169,6 @@ This API implements the complete OAuth 2.0 authorization server functionality re
 
 The OAuth API uses several APIM Named Values for configuration:
 - `McpClientId` - The registered Entra ID application client ID
-- `EntraIDFicClientId` - Service identity client ID for token exchange
 - `APIMGatewayURL` - Base URL for callback and metadata endpoints
 - `OAuthScopes` - Requested OAuth scopes (`openid` + Microsoft Graph)
 - `EncryptionKey` / `EncryptionIV` - For session key encryption
@@ -238,8 +240,9 @@ The solution implements a sophisticated multi-layer security model:
 
 **Layer 4: Azure Platform Security**
 - All traffic encrypted in transit (TLS)
-- Storage access via managed identities
+- Storage access via system-assigned managed identities
 - Audit logging through Application Insights
+- Automatic identity lifecycle management
 
 This layered approach ensures that even if one security boundary is compromised, multiple additional protections remain in place.
 

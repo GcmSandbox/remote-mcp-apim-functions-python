@@ -89,12 +89,12 @@ resource cryptoValuesScript 'Microsoft.Resources/deploymentScripts@2020-10-01' =
   }
 }
 
-// Role assignment for deployment script system-assigned identity to manage APIM named values
+// Role assignment for deployment script system-assigned identity to manage APIM named values  
 resource deploymentScriptApimRoleAssignment 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(resourceGroup().id, 'deploymentScript', apimServiceName, 'APIM Contributor')
+  name: guid(resourceGroup().id, 'generateCryptoValues', apimServiceName, 'APIM Contributor')
   scope: apimService
   properties: {
-    principalId: cryptoValuesScript.identity.principalId
+    principalId: reference(cryptoValuesScript.id, cryptoValuesScript.apiVersion, 'full').identity.principalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '312a565d-c81f-4fd8-895a-4e21e48d571c')
     principalType: 'ServicePrincipal'
   }
