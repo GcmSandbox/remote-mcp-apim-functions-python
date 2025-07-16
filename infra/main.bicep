@@ -71,7 +71,6 @@ module oauthAPIModule './app/apim-oauth/oauth.bicep' = {
     oauthScopes: oauth_scopes
     entraAppUserAssignedIdentityPrincipleId: apimService.outputs.entraAppUserAssignedIdentityPrincipleId
     entraAppUserAssignedIdentityClientId: apimService.outputs.entraAppUserAssignedIdentityClientId
-    functionAppBaseUrl: api.outputs.SERVICE_API_URI
   }
 }
 
@@ -145,7 +144,7 @@ module storage './core/storage/storage-account.bicep' = {
     name: !empty(storageAccountName) ? storageAccountName : '${abbrs.storageStorageAccounts}${resourceToken}'
     location: location
     tags: tags
-    containers: [{name: deploymentStorageContainerName}, {name: 'snippets'}]
+    containers: [{name: deploymentStorageContainerName}, {name: 'snippets'}, {name: 'clients'}]
     publicNetworkAccess: vnetEnabled ? 'Disabled' : 'Enabled'
     networkAcls: !vnetEnabled ? {} : {
       defaultAction: 'Deny'

@@ -181,17 +181,24 @@ resource MCPServerNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-0
   }
 }
 
-// Add Function App Base URL named value
-@description('The base URL of the function app')
-param functionAppBaseUrl string
+// Create empty named values for the function app
+resource functionHostKeyNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-08-01' = {
+  parent: apimService
+  name: 'function-host-key'
+  properties: {
+    displayName: 'function-host-key'
+    secret: true
+    value: 'abc'
+  }
+}
 
-resource FunctionAppBaseUrlNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-08-01' = {
+resource functionHostUrlNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-08-01' = {
   parent: apimService
   name: 'FunctionAppBaseUrl'
   properties: {
     displayName: 'FunctionAppBaseUrl'
-    value: functionAppBaseUrl
     secret: false
+    value: 'abc'
   }
 }
 

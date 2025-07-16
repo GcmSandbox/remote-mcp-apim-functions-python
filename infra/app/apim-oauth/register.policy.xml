@@ -17,7 +17,7 @@
         
         <!-- Store client info in blob storage -->
         <send-request ignore-error="false" timeout="20" response-variable-name="storeResponse" mode="new">
-            <set-url>@($"{{FunctionAppBaseUrl}}/api/store/{context.Variables.GetValueOrDefault<string>("uniqueClientId")}")</set-url>
+            <set-url>@($"{{FunctionAppBaseUrl}}/api/clients/{context.Variables.GetValueOrDefault<string>("uniqueClientId")}")</set-url>
             <set-method>POST</set-method>
             <set-header name="Content-Type" exists-action="override">
                 <value>application/json</value>
