@@ -1,6 +1,6 @@
 param name string
 param location string = resourceGroup().location
-param tags object = {owner: 'Scott-6'}
+param tags object = {}
 
 // Reference Properties
 param applicationInsightsName string = ''
