@@ -12,30 +12,39 @@
         <base />
         <!-- STEP 1: Extract client registration data from request -->
         <set-variable name="requestBody" value="@(context.Request.Body.As<JObject>(preserveContent: true))" />
-          <!-- STEP 2: Store registration information in cache -->
-        <cache-store-value duration="3600" 
-            key="DynamicClientRegistration" 
-            value="@(context.Variables.GetValueOrDefault<JObject>("requestBody").ToString())" />
-        
-        <!-- Store the redirect URI -->
-        <cache-store-value duration="3600" 
-            key="ClientRedirectUri" 
-            value="@(context.Variables.GetValueOrDefault<JObject>("requestBody")["redirect_uris"][0].ToString())" />
-
-        <!-- Generate a unique client ID (GUID) -->
+          <!-- Generate a unique client ID (GUID) -->
         <set-variable name="uniqueClientId" value="@(Guid.NewGuid().ToString())" />
         
-        <!-- Store client info by client ID for easy lookup during consent -->
-        <cache-store-value duration="3600" 
-            key="@($"ClientInfo-{context.Variables.GetValueOrDefault<string>("uniqueClientId")}")" 
-            value="@{
+        <!-- Store client info in blob storage -->
+        <send-request ignore-error="false" timeout="20" response-variable-name="storeResponse" mode="new">
+            <set-url>@($"{{FunctionAppBaseUrl}}/api/clients/{context.Variables.GetValueOrDefault<string>("uniqueClientId")}")</set-url>
+            <set-method>POST</set-method>
+            <set-header name="Content-Type" exists-action="override">
+                <value>application/json</value>
+            </set-header>
+            <set-header name="x-functions-key" exists-action="override">
+                <value>{{function-host-key}}</value>
+            </set-header>
+            <set-body>@{
                 var requestBody = context.Variables.GetValueOrDefault<JObject>("requestBody");
                 var clientInfo = new JObject();
                 clientInfo["client_name"] = requestBody["client_name"]?.ToString() ?? "Unknown Application";
                 clientInfo["client_uri"] = requestBody["client_uri"]?.ToString() ?? "";
                 clientInfo["redirect_uris"] = requestBody["redirect_uris"];
+                clientInfo["registration_time"] = DateTime.UtcNow.ToString("o");
                 return clientInfo.ToString();
-            }" />
+            }</set-body>
+        </send-request>
+
+        <!-- Check if storage was successful -->
+        <choose>
+            <when condition="@(context.Variables.GetValueOrDefault<IResponse>("storeResponse").StatusCode != 200)">
+                <return-response>
+                    <set-status code="500" reason="Internal Server Error" />
+                    <set-body>Failed to store client registration information</set-body>
+                </return-response>
+            </when>
+        </choose>
         
         <!-- STEP 3: Set response content type -->
         <set-header name="Content-Type" exists-action="override">

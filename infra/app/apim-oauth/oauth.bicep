@@ -181,6 +181,27 @@ resource MCPServerNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-0
   }
 }
 
+// Create empty named values for the function app
+resource functionHostKeyNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-08-01' = {
+  parent: apimService
+  name: 'function-host-key'
+  properties: {
+    displayName: 'function-host-key'
+    secret: true
+    value: 'abc'
+  }
+}
+
+resource functionHostUrlNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-08-01' = {
+  parent: apimService
+  name: 'FunctionAppBaseUrl'
+  properties: {
+    displayName: 'FunctionAppBaseUrl'
+    secret: false
+    value: 'abc'
+  }
+}
+
 // Create the OAuth API
 resource oauthApi 'Microsoft.ApiManagement/service/apis@2021-08-01' = {
   parent: apimService

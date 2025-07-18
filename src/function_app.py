@@ -1,3 +1,4 @@
+
 from dataclasses import dataclass
 import json
 import logging
@@ -60,7 +61,7 @@ def hello_mcp(context) -> str:
     toolProperties=tool_properties_get_snippets_json,
 )
 @app.generic_input_binding(arg_name="file", type="blob", connection="AzureWebJobsStorage", path=_BLOB_PATH)
-def get_snippet(file: func.InputStream, context) -> str:
+def snippet_get(file: func.InputStream, context) -> str:
     """
     Retrieves a snippet by name from Azure Blob Storage.
 
@@ -84,7 +85,7 @@ def get_snippet(file: func.InputStream, context) -> str:
     toolProperties=tool_properties_save_snippets_json,
 )
 @app.generic_output_binding(arg_name="file", type="blob", connection="AzureWebJobsStorage", path=_BLOB_PATH)
-def save_snippet(file: func.Out[str], context) -> str:
+def snippet_save(file: func.Out[str], context) -> str:
     content = json.loads(context)
     if "arguments" not in content:
         return "No arguments provided"
@@ -101,3 +102,27 @@ def save_snippet(file: func.Out[str], context) -> str:
     file.set(snippet_content_from_args)
     logging.info("Saved snippet: %s", snippet_content_from_args)
     return f"Snippet '{snippet_content_from_args}' saved successfully"
+
+
+@app.route(route="clients/{blobname}", methods=[func.HttpMethod.POST])
+@app.blob_output(arg_name="outputblob", connection="AzureWebJobsStorage", path="clients/{blobname}")
+def client_post(req: func.HttpRequest, outputblob: func.Out[bytes]) -> func.HttpResponse:
+    try:
+        blobname = req.route_params.get("blobname")
+        content = req.get_body()
+        outputblob.set(content)
+        return func.HttpResponse(f"Stored blob: {blobname}", status_code=200)
+    except Exception as e:
+        return func.HttpResponse(f"Error storing blob: {str(e)}", status_code=500)
+
+
+@app.route(route="clients/{blobname}", methods=[func.HttpMethod.GET])
+@app.blob_input(arg_name="inputblob", connection="AzureWebJobsStorage", path="clients/{blobname}")
+def client_get(req: func.HttpRequest, inputblob: func.InputStream) -> func.HttpResponse:
+    try:
+        blobname = req.route_params.get("blobname")
+        content = inputblob.read().decode("utf-8")
+        return func.HttpResponse(content, status_code=200)
+    except Exception as e:
+        return func.HttpResponse(f"Blob '{blobname}' not found.", status_code=404)
+

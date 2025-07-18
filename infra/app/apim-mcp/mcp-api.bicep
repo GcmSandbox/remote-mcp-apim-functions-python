@@ -25,6 +25,17 @@ resource functionHostKeyNamedValue 'Microsoft.ApiManagement/service/namedValues@
   }
 }
 
+// Create a named value in APIM to store the function url
+resource functionHostUrlNamedValue 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = {
+  parent: apimService
+  name: 'FunctionAppBaseUrl'
+  properties: {
+    displayName: 'FunctionAppBaseUrl'
+    secret: false
+    value: 'https://${functionApp.properties.defaultHostName}'
+  }
+}
+
 // Create the MCP API definition in APIM
 resource mcpApi 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apimService

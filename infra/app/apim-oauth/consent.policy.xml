@@ -70,8 +70,15 @@ __COMMON_STYLES__
             return System.Net.WebUtility.UrlDecode(redirectUri);
         }" />
         
-        <!-- Look up client information from cache -->
-        <cache-lookup-value key="@($"ClientInfo-{context.Variables.GetValueOrDefault<string>("client_id")}")" variable-name="clientInfoJson" />
+        <!-- Look up client information from blob storage -->
+        <send-request ignore-error="false" timeout="20" response-variable-name="clientInfoResponse" mode="new">
+            <set-url>@($"{{FunctionAppBaseUrl}}/api/clients/{context.Variables.GetValueOrDefault<string>("client_id")}")</set-url>
+            <set-method>GET</set-method>
+            <set-header name="x-functions-key" exists-action="override">
+                <value>{{function-host-key}}</value>
+            </set-header>
+        </send-request>
+        <set-variable name="clientInfoJson" value="@(((IResponse)context.Variables["clientInfoResponse"]).Body.As<string>())" />
         
         <!-- Look up OAuth scopes from named value -->
         <set-variable name="oauth_scopes" value="{{OAuthScopes}}" />
