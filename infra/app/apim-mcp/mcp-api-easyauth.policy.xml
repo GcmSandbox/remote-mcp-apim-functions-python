@@ -1,0 +1,79 @@
+<!--
+    MCP API POLICY WITH EASY AUTH
+    This policy applies to all operations in the MCP API.
+    It uses the OAuth on-behalf-of flow to exchange the user's token for a Function App token.
+-->
+<policies>
+    <inbound>
+        <base />
+        <check-header name="Authorization" failed-check-httpcode="401" failed-check-error-message="Not authorized" ignore-case="false" />
+        <set-variable name="IV" value="{{EncryptionIV}}" />
+        <set-variable name="key" value="{{EncryptionKey}}" />
+        <set-variable name="decryptedSessionKey" value="@{
+            // Retrieve the encrypted session key from the request header
+            string authHeader = context.Request.Headers.GetValueOrDefault("Authorization");
+        
+            string encryptedSessionKey = authHeader.StartsWith("Bearer ") ? authHeader.Substring(7) : authHeader;
+            
+            // Decrypt the session key using AES
+            byte[] IV = Convert.FromBase64String((string)context.Variables["IV"]);
+            byte[] key = Convert.FromBase64String((string)context.Variables["key"]);
+            
+            byte[] encryptedBytes = Convert.FromBase64String(encryptedSessionKey);
+            byte[] decryptedBytes = encryptedBytes.Decrypt("Aes", key, IV);
+            
+            return Encoding.UTF8.GetString(decryptedBytes);
+        }" />
+        
+        <!-- Get the user's Entra token from cache using the session key -->
+        <cache-lookup-value key="@($"EntraToken-{context.Variables.GetValueOrDefault("decryptedSessionKey")}")" variable-name="userEntraTokenResponse" />
+        
+        <choose>
+            <when condition="@(context.Variables.GetValueOrDefault("userEntraTokenResponse") == null)">
+                <return-response>
+                    <set-status code="401" reason="Unauthorized" />
+                    <set-header name="WWW-Authenticate" exists-action="override">
+                        <value>Bearer error="invalid_token"</value>
+                    </set-header>
+                </return-response>
+            </when>
+        </choose>
+        
+        <!-- Look up client information from blob storage -->
+        <authentication-managed-identity resource="{{EntraIDClientId}}" client-id="{{EntraIDFicClientId}}" output-token-variable-name="ficToken"/>
+        <send-one-way-request timeout="120" mode="new">
+            <set-url>@($"{{FunctionAppBaseUrl}}/api/log")</set-url>
+            <set-method>POST</set-method>
+            <set-header name="Authorization" exists-action="override">
+                <value>@{
+                    return "Bearer " + context.Variables.GetValueOrDefault<string>("ficToken");
+                }</value>
+            </set-header>
+            <set-body>@{
+                var log = new JObject();
+                log["message"] = "User accessed the API";
+                log["token"] = context.Variables.GetValueOrDefault<string>("userEntraTokenResponse");
+                log["timestamp"] = DateTime.UtcNow;
+                return log.ToString();
+            }</set-body>
+        </send-one-way-request>
+
+        <!-- Set the Function App token as the Authorization header -->
+        <set-header name="Authorization" exists-action="override">
+            <value>@{
+                string tokenResponseJson = context.Variables.GetValueOrDefault<string>("userEntraTokenResponse");
+                JObject tokenResponse = JObject.Parse(tokenResponseJson);
+                return "Bearer " + tokenResponse["access_token"]?.ToString();
+            }</value>
+        </set-header>
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

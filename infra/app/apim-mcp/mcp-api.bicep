@@ -4,6 +4,9 @@ param apimServiceName string
 @description('The name of the Function App hosting the MCP endpoints')
 param functionAppName string
 
+@description('The Function App Client ID for Easy Auth')
+param functionAppClientId string = ''
+
 // Get reference to the existing APIM service
 resource apimService 'Microsoft.ApiManagement/service@2023-05-01-preview' existing = {
   name: apimServiceName
@@ -14,17 +17,6 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' existing = {
   name: functionAppName
 }
 
-// Create a named value in APIM to store the function key
-resource functionHostKeyNamedValue 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = {
-  parent: apimService
-  name: 'function-host-key'
-  properties: {
-    displayName: 'function-host-key'
-    secret: true
-    value: listKeys('${functionApp.id}/host/default', functionApp.apiVersion).masterKey
-  }
-}
-
 // Create a named value in APIM to store the function url
 resource functionHostUrlNamedValue 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = {
   parent: apimService
@@ -33,6 +25,17 @@ resource functionHostUrlNamedValue 'Microsoft.ApiManagement/service/namedValues@
     displayName: 'FunctionAppBaseUrl'
     secret: false
     value: 'https://${functionApp.properties.defaultHostName}'
+  }
+}
+
+// Create a named value in APIM to store the Function App API URI for Easy Auth
+resource functionAppApiUriNamedValue 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = if (!empty(functionAppClientId)) {
+  parent: apimService
+  name: 'FunctionAppApiUri'
+  properties: {
+    displayName: 'FunctionAppApiUri'
+    secret: false
+    value: 'api://${functionAppClientId}'
   }
 }
 
@@ -50,9 +53,6 @@ resource mcpApi 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
     ]
     serviceUrl: 'https://${functionApp.properties.defaultHostName}/runtime/webhooks/mcp'
   }
-  dependsOn: [
-    functionHostKeyNamedValue
-  ]
 }
 
 // Apply policy at the API level for all operations
@@ -61,7 +61,9 @@ resource mcpApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-
   name: 'policy'
   properties: {
     format: 'rawxml'
-    value: loadTextContent('mcp-api.policy.xml')
+    value: !empty(functionAppClientId) 
+      ? loadTextContent('mcp-api-easyauth.policy.xml')
+      : loadTextContent('mcp-api.policy.xml')
   }
 }
 

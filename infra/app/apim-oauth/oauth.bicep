@@ -420,3 +420,4 @@ resource oauthConsentPostPolicy 'Microsoft.ApiManagement/service/apis/operations
 }
 
 output apiId string = oauthApi.id
+output oauthClientId string = entraApp.outputs.entraAppId

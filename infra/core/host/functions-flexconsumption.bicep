@@ -73,8 +73,11 @@ resource functions 'Microsoft.Web/sites@2023-12-01' = {
       {
         AzureWebJobsStorage__accountName: stg.name
         AzureWebJobsStorage__credential : 'managedidentity'
+      },
+      !empty(applicationInsightsName) ? {
         APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString
-      })
+      } : {}
+    )
   }
 }
 

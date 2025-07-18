@@ -74,6 +74,19 @@ module oauthAPIModule './app/apim-oauth/oauth.bicep' = {
   }
 }
 
+// Function App Easy Auth configuration
+module functionAppAuth './app/apim-oauth/function-app-auth.bicep' = {
+  name: 'functionAppAuth'
+  scope: rg
+  params: {
+    functionAppName: functionAppName
+    oauthClientId: oauthAPIModule.outputs.oauthClientId
+  }
+  dependsOn: [
+    api
+  ]
+}
+
 // MCP server API endpoints
 module mcpApiModule './app/apim-mcp/mcp-api.bicep' = {
   name: 'mcpApiModule'
@@ -81,10 +94,10 @@ module mcpApiModule './app/apim-mcp/mcp-api.bicep' = {
   params: {
     apimServiceName: apimService.name
     functionAppName: functionAppName
+    functionAppClientId: functionAppAuth.outputs.functionAppClientId
   }
   dependsOn: [
     api
-    oauthAPIModule
   ]
 }
 
@@ -132,7 +145,7 @@ module api './app/api.bicep' = {
     identityClientId: apiUserAssignedIdentity.outputs.identityClientId
     appSettings: {
     }
-    virtualNetworkSubnetId: !vnetEnabled ? '' : serviceVirtualNetwork.outputs.appSubnetID
+    virtualNetworkSubnetId: !vnetEnabled ? '' : serviceVirtualNetwork!.outputs.appSubnetID
   }
 }
 
@@ -195,7 +208,7 @@ module storagePrivateEndpoint 'app/storage-PrivateEndpoint.bicep' = if (vnetEnab
     location: location
     tags: tags
     virtualNetworkName: !empty(vNetName) ? vNetName : '${abbrs.networkVirtualNetworks}${resourceToken}'
-    subnetName: !vnetEnabled ? '' : serviceVirtualNetwork.outputs.peSubnetName
+    subnetName: !vnetEnabled ? '' : serviceVirtualNetwork!.outputs.peSubnetName
     resourceName: storage.outputs.name
   }
 }
