@@ -36,7 +36,7 @@
             sb.Append("&grant_type=authorization_code");
             sb.Append($"&code={context.Variables.GetValueOrDefault("authCode")}");
             sb.Append($"&redirect_uri={context.Variables.GetValueOrDefault("redirectUri")}");
-            sb.Append("&scope={{EntraIDClientId}}/.default");
+            sb.Append("&scope={{EntraIDIdentifier}}/.default");
             sb.Append($"&code_verifier={context.Variables.GetValueOrDefault("codeVerifier")}");
             sb.Append($"&client_assertion_type={context.Variables.GetValueOrDefault("clientAssertionType")}");
             sb.Append($"&client_assertion={context.Variables.GetValueOrDefault("ficToken")}");

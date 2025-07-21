@@ -37,6 +37,23 @@ resource entraApp 'Microsoft.Graph/applications@v1.0' = {
       ]
     }
   ]
+  identifierUris: [
+    'api://${entraAppUniqueName}'
+  ]
+  api: {
+    oauth2PermissionScopes: [
+      {
+        id: '00000000-0000-0000-0000-000000000001'
+        adminConsentDescription: 'Allow the application to access the MCP API on behalf of the signed-in user'
+        adminConsentDisplayName: 'Access MCP API'
+        userConsentDescription: 'Allow the application to access the MCP API on your behalf'
+        userConsentDisplayName: 'Access MCP API'
+        value: 'user_impersonation'
+        type: 'User'
+        isEnabled: true
+      }
+    ]
+  }
 
   resource fic 'federatedIdentityCredentials@v1.0' = {
     name: '${entraApp.uniqueName}/msiAsFic'

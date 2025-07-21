@@ -40,7 +40,7 @@
         </choose>
         
         <!-- Look up client information from blob storage -->
-        <authentication-managed-identity resource="{{EntraIDClientId}}" client-id="{{EntraIDFicClientId}}" output-token-variable-name="ficToken"/>
+        <authentication-managed-identity resource="{{EntraIDIdentifier}}" client-id="{{EntraIDFicClientId}}" output-token-variable-name="ficToken"/>
         <send-one-way-request timeout="120" mode="new">
             <set-url>@($"{{FunctionAppBaseUrl}}/api/log")</set-url>
             <set-method>POST</set-method>

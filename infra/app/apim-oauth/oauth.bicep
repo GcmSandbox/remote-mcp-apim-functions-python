@@ -120,6 +120,16 @@ resource EntraIDClientIdNamedValue 'Microsoft.ApiManagement/service/namedValues@
   }
 }
 
+resource EntraIDIdentifierNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-08-01' = {
+  parent: apimService
+  name: 'EntraIDIdentifier'
+  properties: {
+    displayName: 'EntraIDIdentifier'
+    value: 'api://${entraAppUniqueName}'
+    secret: false
+  }
+}
+
 resource EntraIdFicClientIdNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-08-01' = {
   parent: apimService
   name: 'EntraIDFicClientId'
@@ -181,17 +191,7 @@ resource MCPServerNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-0
   }
 }
 
-// Create empty named values for the function app
-resource functionHostKeyNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-08-01' = {
-  parent: apimService
-  name: 'function-host-key'
-  properties: {
-    displayName: 'function-host-key'
-    secret: true
-    value: 'abc'
-  }
-}
-
+// Create dummy named values for the function app
 resource functionHostUrlNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-08-01' = {
   parent: apimService
   name: 'FunctionAppBaseUrl'
@@ -421,3 +421,4 @@ resource oauthConsentPostPolicy 'Microsoft.ApiManagement/service/apis/operations
 
 output apiId string = oauthApi.id
 output oauthClientId string = entraApp.outputs.entraAppId
+output oauthIdentifier string = 'api://${entraAppUniqueName}'

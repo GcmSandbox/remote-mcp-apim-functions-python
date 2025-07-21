@@ -81,6 +81,7 @@ module functionAppAuth './app/apim-oauth/function-app-auth.bicep' = {
   params: {
     functionAppName: functionAppName
     oauthClientId: oauthAPIModule.outputs.oauthClientId
+    oauthIdentifier: oauthAPIModule.outputs.oauthIdentifier
   }
   dependsOn: [
     api

@@ -28,17 +28,6 @@ resource functionHostUrlNamedValue 'Microsoft.ApiManagement/service/namedValues@
   }
 }
 
-// Create a named value in APIM to store the Function App API URI for Easy Auth
-resource functionAppApiUriNamedValue 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = if (!empty(functionAppClientId)) {
-  parent: apimService
-  name: 'FunctionAppApiUri'
-  properties: {
-    displayName: 'FunctionAppApiUri'
-    secret: false
-    value: 'api://${functionAppClientId}'
-  }
-}
-
 // Create the MCP API definition in APIM
 resource mcpApi 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apimService
