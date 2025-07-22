@@ -28,6 +28,16 @@ resource functionHostUrlNamedValue 'Microsoft.ApiManagement/service/namedValues@
   }
 }
 
+resource FunctionAppKeyNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-08-01' = {
+  parent: apimService
+  name: 'FunctionMcpKey'
+  properties: {
+    displayName: 'FunctionMcpKey'
+    value: listKeys('${functionApp.id}/host/default', functionApp.apiVersion).systemKeys.mcp_extension
+    secret: true
+  }
+}
+
 // Create the MCP API definition in APIM
 resource mcpApi 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apimService

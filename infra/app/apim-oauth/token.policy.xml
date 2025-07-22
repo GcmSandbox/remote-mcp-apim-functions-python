@@ -173,7 +173,7 @@
         }" />
         
         <!-- Look up client information from blob storage -->
-        <authentication-managed-identity resource="{{EntraIDIdentifier}}" client-id="{{EntraIDFicClientId}}" output-token-variable-name="ficToken"/>
+        <authentication-managed-identity resource="{{FunctionAppIdentifier}}" client-id="{{EntraIDFicClientId}}" output-token-variable-name="ficToken"/>
         <send-request ignore-error="false" timeout="120" response-variable-name="clientInfoResponse" mode="new">
             <set-url>@($"{{FunctionAppBaseUrl}}/api/clients/{context.Variables.GetValueOrDefault<string>("client_id")}")</set-url>
             <set-method>GET</set-method>

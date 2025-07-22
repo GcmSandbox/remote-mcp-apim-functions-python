@@ -88,3 +88,5 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing
 output name string = functions.name
 output uri string = 'https://${functions.properties.defaultHostName}'
 output identityPrincipalId string = identityType == 'SystemAssigned' ? functions.identity.principalId : ''
+@secure()
+output functionKey string = listKeys('${functions.id}/host/default', functions.apiVersion).functionKeys.default

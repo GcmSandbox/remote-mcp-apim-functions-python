@@ -15,6 +15,9 @@ param apimOauthCallback string
 @description('The principle id of the user-assigned managed identity')
 param userAssignedIdentityPrincipleId string
 
+@description('The Function App client ID to request access to')
+param functionAppClientId string
+
 var loginEndpoint = environment().authentication.loginEndpoint
 var issuer = '${loginEndpoint}${tenantId}/v2.0'
 
@@ -36,9 +39,18 @@ resource entraApp 'Microsoft.Graph/applications@v1.0' = {
         }
       ]
     }
+    {
+      resourceAppId: functionAppClientId
+      resourceAccess: [
+        {
+          id: '44444444-4444-4444-4444-444444444444' // user_impersonation scope from Function App
+          type: 'Scope'
+        }
+      ]
+    }
   ]
   identifierUris: [
-    'api://${entraAppUniqueName}'
+    'api://${entraAppUniqueName}/${tenant().tenantId}'
   ]
   api: {
     oauth2PermissionScopes: [

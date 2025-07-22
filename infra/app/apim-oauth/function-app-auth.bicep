@@ -3,11 +3,11 @@ extension microsoftGraphV1
 @description('The name of the Function App')
 param functionAppName string
 
-@description('The OAuth Client ID from the main OAuth app')
-param oauthClientId string
+@description('The Function App Client ID from the dedicated app registration')
+param functionAppClientId string
 
-@description('The OAuth Identifier from the main OAuth app')
-param oauthIdentifier string
+@description('The Function App Identifier from the dedicated app registration') 
+param functionAppIdentifier string
 
 @description('Tenant ID where the application is registered')
 param tenantId string = tenant().tenantId
@@ -17,10 +17,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' existing = {
   name: functionAppName
 }
 
-//var loginEndpoint = environment().authentication.loginEndpoint
-//var issuer = '${loginEndpoint}${tenantId}/v2.0'
-
-// Configure Easy Auth on the Function App after app creation
+// Configure Easy Auth on the Function App with dedicated app registration
 resource functionAppAuthSettings 'Microsoft.Web/sites/config@2023-12-01' = {
   parent: functionApp
   name: 'authsettingsV2'
@@ -42,13 +39,12 @@ resource functionAppAuthSettings 'Microsoft.Web/sites/config@2023-12-01' = {
       azureActiveDirectory: {
         enabled: true
         registration: {
-          //openIdIssuer: issuer
-          clientId: oauthClientId
+          clientId: functionAppClientId
         }
         validation: {
           allowedAudiences: [
-            oauthClientId
-            oauthIdentifier
+            functionAppClientId
+            functionAppIdentifier
           ]
           // Allow any authenticated user with a valid token for this app
         }
@@ -63,5 +59,5 @@ resource functionAppAuthSettings 'Microsoft.Web/sites/config@2023-12-01' = {
 }
 
 // Outputs
-output functionAppClientId string = oauthClientId
+output functionAppClientId string = functionAppClientId
 output functionAppTenantId string = tenantId

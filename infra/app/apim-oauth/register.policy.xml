@@ -16,7 +16,7 @@
         <set-variable name="uniqueClientId" value="@(Guid.NewGuid().ToString())" />
         
         <!-- Store client info in blob storage -->
-        <authentication-managed-identity resource="{{EntraIDIdentifier}}" client-id="{{EntraIDFicClientId}}" output-token-variable-name="ficToken"/>
+        <authentication-managed-identity resource="{{FunctionAppIdentifier}}" client-id="{{EntraIDFicClientId}}" output-token-variable-name="ficToken"/>
         <send-request ignore-error="false" timeout="120" response-variable-name="storeResponse" mode="new">
             <set-url>@($"{{FunctionAppBaseUrl}}/api/clients/{context.Variables.GetValueOrDefault<string>("uniqueClientId")}")</set-url>
             <set-method>POST</set-method>

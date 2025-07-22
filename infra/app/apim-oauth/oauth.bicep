@@ -23,6 +23,12 @@ param entraAppDisplayName string
 @description('The name of the MCP Server to display in the consent page')
 param mcpServerName string = 'MCP Server'
 
+@description('The Function App identifier URI')
+param functionAppIdentifier string
+
+@description('The Function App identifier URI')
+param functionAppClientId string
+
 resource apimService 'Microsoft.ApiManagement/service@2021-08-01' existing = {
   name: apimServiceName
 }
@@ -40,6 +46,7 @@ module entraApp './entra-app.bicep' = {
     entraAppDisplayName: entraAppDisplayName
     apimOauthCallback: '${apimService.properties.gatewayUrl}/oauth-callback'
     userAssignedIdentityPrincipleId: entraAppUserAssignedIdentityPrincipleId
+    functionAppClientId: functionAppClientId
   }
 }
 
@@ -125,7 +132,7 @@ resource EntraIDIdentifierNamedValue 'Microsoft.ApiManagement/service/namedValue
   name: 'EntraIDIdentifier'
   properties: {
     displayName: 'EntraIDIdentifier'
-    value: 'api://${entraAppUniqueName}'
+    value: 'api://${entraAppUniqueName}/${tenant().tenantId}'
     secret: false
   }
 }
@@ -191,14 +198,13 @@ resource MCPServerNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-0
   }
 }
 
-// Create dummy named values for the function app
-resource functionHostUrlNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-08-01' = {
+resource FunctionAppIdentifierNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-08-01' = {
   parent: apimService
-  name: 'FunctionAppBaseUrl'
+  name: 'FunctionAppIdentifier'
   properties: {
-    displayName: 'FunctionAppBaseUrl'
+    displayName: 'FunctionAppIdentifier'
+    value: functionAppIdentifier
     secret: false
-    value: 'abc'
   }
 }
 

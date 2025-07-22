@@ -26,6 +26,8 @@ param storageAccountName string = ''
 param vNetName string = ''
 param mcpEntraApplicationDisplayName string = ''
 param mcpEntraApplicationUniqueName string = ''
+param functionAppEntraApplicationDisplayName string = ''
+param functionAppEntraApplicationUniqueName string = ''
 param disableLocalAuth bool = true
 
 // MCP Client APIM gateway specific variables
@@ -59,7 +61,32 @@ module apimService './core/apim/apim.bicep' = {
   }
 }
 
-// MCP client oauth via APIM gateway
+// First create the OAuth Entra app independently
+module oauthEntraApp './app/apim-oauth/entra-app.bicep' = {
+  name: 'oauthEntraApp'
+  scope: rg
+  params: {
+    entraAppUniqueName: !empty(mcpEntraApplicationUniqueName) ? mcpEntraApplicationUniqueName : 'mcp-oauth-${abbrs.applications}${apimResourceToken}'
+    entraAppDisplayName: !empty(mcpEntraApplicationDisplayName) ? mcpEntraApplicationDisplayName : 'MCP-OAuth-${abbrs.applications}${apimResourceToken}'
+    apimOauthCallback: '${apimService.outputs.gatewayUrl}/oauth-callback'
+    userAssignedIdentityPrincipleId: apimService.outputs.entraAppUserAssignedIdentityPrincipleId
+    // TODO: Add functionAppClientId after circular dependency is resolved
+    functionAppClientId: '00000000-0000-0000-0000-000000000000' // Placeholder
+  }
+}
+
+// Function App Entra registration (now can reference OAuth app)
+module functionEntraAppModule './app/apim-oauth/function-entra-app.bicep' = {
+  name: 'functionEntraAppModule'
+  scope: rg
+  params: {
+    functionAppUniqueName: !empty(functionAppEntraApplicationUniqueName) ? functionAppEntraApplicationUniqueName : 'mcp-function-${abbrs.applications}${apimResourceToken}'
+    functionAppDisplayName: !empty(functionAppEntraApplicationDisplayName) ? functionAppEntraApplicationDisplayName : 'MCP-Function-${abbrs.applications}${apimResourceToken}'
+    functionAppUrl: 'https://${functionAppName}.azurewebsites.net'
+  }
+}
+
+// Now create the full OAuth API module with all APIM resources
 module oauthAPIModule './app/apim-oauth/oauth.bicep' = {
   name: 'oauthAPIModule'
   scope: rg
@@ -71,6 +98,8 @@ module oauthAPIModule './app/apim-oauth/oauth.bicep' = {
     oauthScopes: oauth_scopes
     entraAppUserAssignedIdentityPrincipleId: apimService.outputs.entraAppUserAssignedIdentityPrincipleId
     entraAppUserAssignedIdentityClientId: apimService.outputs.entraAppUserAssignedIdentityClientId
+    functionAppIdentifier: functionEntraAppModule.outputs.functionAppIdentifier
+    functionAppClientId: functionEntraAppModule.outputs.functionAppId
   }
 }
 
@@ -80,8 +109,8 @@ module functionAppAuth './app/apim-oauth/function-app-auth.bicep' = {
   scope: rg
   params: {
     functionAppName: functionAppName
-    oauthClientId: oauthAPIModule.outputs.oauthClientId
-    oauthIdentifier: oauthAPIModule.outputs.oauthIdentifier
+    functionAppClientId: functionEntraAppModule.outputs.functionAppId
+    functionAppIdentifier: functionEntraAppModule.outputs.functionAppIdentifier
   }
   dependsOn: [
     api
@@ -97,9 +126,6 @@ module mcpApiModule './app/apim-mcp/mcp-api.bicep' = {
     functionAppName: functionAppName
     functionAppClientId: functionAppAuth.outputs.functionAppClientId
   }
-  dependsOn: [
-    api
-  ]
 }
 
 
