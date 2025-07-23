@@ -26,6 +26,8 @@ param storageAccountName string = ''
 param vNetName string = ''
 param mcpEntraApplicationDisplayName string = ''
 param mcpEntraApplicationUniqueName string = ''
+param functionAppEntraApplicationDisplayName string = ''
+param functionAppEntraApplicationUniqueName string = ''
 param disableLocalAuth bool = true
 
 // MCP Client APIM gateway specific variables
@@ -59,7 +61,32 @@ module apimService './core/apim/apim.bicep' = {
   }
 }
 
-// MCP client oauth via APIM gateway
+// First create the OAuth Entra app independently
+module oauthEntraApp './app/apim-oauth/entra-app.bicep' = {
+  name: 'oauthEntraApp'
+  scope: rg
+  params: {
+    entraAppUniqueName: !empty(mcpEntraApplicationUniqueName) ? mcpEntraApplicationUniqueName : 'mcp-oauth-${abbrs.applications}${apimResourceToken}'
+    entraAppDisplayName: !empty(mcpEntraApplicationDisplayName) ? mcpEntraApplicationDisplayName : 'MCP-OAuth-${abbrs.applications}${apimResourceToken}'
+    apimOauthCallback: '${apimService.outputs.gatewayUrl}/oauth-callback'
+    userAssignedIdentityPrincipleId: apimService.outputs.entraAppUserAssignedIdentityPrincipleId
+    // TODO: Add functionAppClientId after circular dependency is resolved
+    functionAppClientId: '00000000-0000-0000-0000-000000000000' // Placeholder
+  }
+}
+
+// Function App Entra registration (now can reference OAuth app)
+module functionEntraAppModule './app/apim-oauth/function-entra-app.bicep' = {
+  name: 'functionEntraAppModule'
+  scope: rg
+  params: {
+    functionAppUniqueName: !empty(functionAppEntraApplicationUniqueName) ? functionAppEntraApplicationUniqueName : 'mcp-function-${abbrs.applications}${apimResourceToken}'
+    functionAppDisplayName: !empty(functionAppEntraApplicationDisplayName) ? functionAppEntraApplicationDisplayName : 'MCP-Function-${abbrs.applications}${apimResourceToken}'
+    functionAppUrl: 'https://${functionAppName}.azurewebsites.net'
+  }
+}
+
+// Now create the full OAuth API module with all APIM resources
 module oauthAPIModule './app/apim-oauth/oauth.bicep' = {
   name: 'oauthAPIModule'
   scope: rg
@@ -71,7 +98,23 @@ module oauthAPIModule './app/apim-oauth/oauth.bicep' = {
     oauthScopes: oauth_scopes
     entraAppUserAssignedIdentityPrincipleId: apimService.outputs.entraAppUserAssignedIdentityPrincipleId
     entraAppUserAssignedIdentityClientId: apimService.outputs.entraAppUserAssignedIdentityClientId
+    functionAppIdentifier: functionEntraAppModule.outputs.functionAppIdentifier
+    functionAppClientId: functionEntraAppModule.outputs.functionAppId
   }
+}
+
+// Function App Easy Auth configuration
+module functionAppAuth './app/apim-oauth/function-app-auth.bicep' = {
+  name: 'functionAppAuth'
+  scope: rg
+  params: {
+    functionAppName: functionAppName
+    functionAppClientId: functionEntraAppModule.outputs.functionAppId
+    functionAppIdentifier: functionEntraAppModule.outputs.functionAppIdentifier
+  }
+  dependsOn: [
+    api
+  ]
 }
 
 // MCP server API endpoints
@@ -81,11 +124,8 @@ module mcpApiModule './app/apim-mcp/mcp-api.bicep' = {
   params: {
     apimServiceName: apimService.name
     functionAppName: functionAppName
+    functionAppClientId: functionAppAuth.outputs.functionAppClientId
   }
-  dependsOn: [
-    api
-    oauthAPIModule
-  ]
 }
 
 
@@ -132,7 +172,7 @@ module api './app/api.bicep' = {
     identityClientId: apiUserAssignedIdentity.outputs.identityClientId
     appSettings: {
     }
-    virtualNetworkSubnetId: !vnetEnabled ? '' : serviceVirtualNetwork.outputs.appSubnetID
+    virtualNetworkSubnetId: !vnetEnabled ? '' : serviceVirtualNetwork!.outputs.appSubnetID
   }
 }
 
@@ -195,7 +235,7 @@ module storagePrivateEndpoint 'app/storage-PrivateEndpoint.bicep' = if (vnetEnab
     location: location
     tags: tags
     virtualNetworkName: !empty(vNetName) ? vNetName : '${abbrs.networkVirtualNetworks}${resourceToken}'
-    subnetName: !vnetEnabled ? '' : serviceVirtualNetwork.outputs.peSubnetName
+    subnetName: !vnetEnabled ? '' : serviceVirtualNetwork!.outputs.peSubnetName
     resourceName: storage.outputs.name
   }
 }

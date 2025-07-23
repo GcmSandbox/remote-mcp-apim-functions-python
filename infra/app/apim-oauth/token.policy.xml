@@ -173,11 +173,14 @@
         }" />
         
         <!-- Look up client information from blob storage -->
-        <send-request ignore-error="false" timeout="20" response-variable-name="clientInfoResponse" mode="new">
+        <authentication-managed-identity resource="{{FunctionAppIdentifier}}" client-id="{{EntraIDFicClientId}}" output-token-variable-name="ficToken"/>
+        <send-request ignore-error="false" timeout="120" response-variable-name="clientInfoResponse" mode="new">
             <set-url>@($"{{FunctionAppBaseUrl}}/api/clients/{context.Variables.GetValueOrDefault<string>("client_id")}")</set-url>
             <set-method>GET</set-method>
-            <set-header name="x-functions-key" exists-action="override">
-                <value>{{function-host-key}}</value>
+            <set-header name="Authorization" exists-action="override">
+                <value>@{
+                    return "Bearer " + context.Variables.GetValueOrDefault<string>("ficToken");
+                }</value>
             </set-header>
         </send-request>
         <set-variable name="clientInfoJson" value="@(((IResponse)context.Variables["clientInfoResponse"]).Body.As<string>())" />

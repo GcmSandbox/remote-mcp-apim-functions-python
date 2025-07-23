@@ -5,7 +5,7 @@ import logging
 
 import azure.functions as func
 
-app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
+app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 # Constants for the Azure Blob Storage container, file, and blob path
 _SNIPPET_NAME_PROPERTY_NAME = "snippetname"
@@ -125,4 +125,11 @@ def client_get(req: func.HttpRequest, inputblob: func.InputStream) -> func.HttpR
         return func.HttpResponse(content, status_code=200)
     except Exception as e:
         return func.HttpResponse(f"Blob '{blobname}' not found.", status_code=404)
+
+
+@app.route(route="log", methods=[func.HttpMethod.POST])
+def log_info(req: func.HttpRequest) -> func.HttpResponse:
+    content = req.get_body()
+    logging.info("Log Info: %s", content)
+    return func.HttpResponse(status_code=200)
 

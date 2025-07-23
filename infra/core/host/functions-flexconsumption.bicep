@@ -73,8 +73,11 @@ resource functions 'Microsoft.Web/sites@2023-12-01' = {
       {
         AzureWebJobsStorage__accountName: stg.name
         AzureWebJobsStorage__credential : 'managedidentity'
+      },
+      !empty(applicationInsightsName) ? {
         APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString
-      })
+      } : {}
+    )
   }
 }
 
@@ -85,3 +88,5 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing
 output name string = functions.name
 output uri string = 'https://${functions.properties.defaultHostName}'
 output identityPrincipalId string = identityType == 'SystemAssigned' ? functions.identity.principalId : ''
+@secure()
+output functionKey string = listKeys('${functions.id}/host/default', functions.apiVersion).functionKeys.default

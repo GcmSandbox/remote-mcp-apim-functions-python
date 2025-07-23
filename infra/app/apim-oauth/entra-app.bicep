@@ -15,6 +15,9 @@ param apimOauthCallback string
 @description('The principle id of the user-assigned managed identity')
 param userAssignedIdentityPrincipleId string
 
+@description('The Function App client ID to request access to')
+param functionAppClientId string
+
 var loginEndpoint = environment().authentication.loginEndpoint
 var issuer = '${loginEndpoint}${tenantId}/v2.0'
 
@@ -36,7 +39,33 @@ resource entraApp 'Microsoft.Graph/applications@v1.0' = {
         }
       ]
     }
+    {
+      resourceAppId: functionAppClientId
+      resourceAccess: [
+        {
+          id: '44444444-4444-4444-4444-444444444444' // user_impersonation scope from Function App
+          type: 'Scope'
+        }
+      ]
+    }
   ]
+  identifierUris: [
+    'api://${entraAppUniqueName}/${tenant().tenantId}'
+  ]
+  api: {
+    oauth2PermissionScopes: [
+      {
+        id: '00000000-0000-0000-0000-000000000001'
+        adminConsentDescription: 'Allow the application to access the MCP API on behalf of the signed-in user'
+        adminConsentDisplayName: 'Access MCP API'
+        userConsentDescription: 'Allow the application to access the MCP API on your behalf'
+        userConsentDisplayName: 'Access MCP API'
+        value: 'user_impersonation'
+        type: 'User'
+        isEnabled: true
+      }
+    ]
+  }
 
   resource fic 'federatedIdentityCredentials@v1.0' = {
     name: '${entraApp.uniqueName}/msiAsFic'

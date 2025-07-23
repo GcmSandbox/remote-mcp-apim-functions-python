@@ -16,14 +16,17 @@
         <set-variable name="uniqueClientId" value="@(Guid.NewGuid().ToString())" />
         
         <!-- Store client info in blob storage -->
-        <send-request ignore-error="false" timeout="20" response-variable-name="storeResponse" mode="new">
+        <authentication-managed-identity resource="{{FunctionAppIdentifier}}" client-id="{{EntraIDFicClientId}}" output-token-variable-name="ficToken"/>
+        <send-request ignore-error="false" timeout="120" response-variable-name="storeResponse" mode="new">
             <set-url>@($"{{FunctionAppBaseUrl}}/api/clients/{context.Variables.GetValueOrDefault<string>("uniqueClientId")}")</set-url>
             <set-method>POST</set-method>
             <set-header name="Content-Type" exists-action="override">
                 <value>application/json</value>
             </set-header>
-            <set-header name="x-functions-key" exists-action="override">
-                <value>{{function-host-key}}</value>
+            <set-header name="Authorization" exists-action="override">
+                <value>@{
+                    return "Bearer " + context.Variables.GetValueOrDefault<string>("ficToken");
+                }</value>
             </set-header>
             <set-body>@{
                 var requestBody = context.Variables.GetValueOrDefault<JObject>("requestBody");

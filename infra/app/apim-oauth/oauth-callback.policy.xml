@@ -31,7 +31,16 @@
             <value>application/x-www-form-urlencoded</value>
         </set-header>
         <set-body>@{
-            return $"client_id={context.Variables.GetValueOrDefault("clientId")}&grant_type=authorization_code&code={context.Variables.GetValueOrDefault("authCode")}&redirect_uri={context.Variables.GetValueOrDefault("redirectUri")}&scope=https://graph.microsoft.com/.default&code_verifier={context.Variables.GetValueOrDefault("codeVerifier")}&client_assertion_type={context.Variables.GetValueOrDefault("clientAssertionType")}&client_assertion={context.Variables.GetValueOrDefault("ficToken")}";
+            var sb = new StringBuilder();
+            sb.Append($"client_id={context.Variables.GetValueOrDefault("clientId")}");
+            sb.Append("&grant_type=authorization_code");
+            sb.Append($"&code={context.Variables.GetValueOrDefault("authCode")}");
+            sb.Append($"&redirect_uri={context.Variables.GetValueOrDefault("redirectUri")}");
+            sb.Append("&scope={{EntraIDIdentifier}}/.default");
+            sb.Append($"&code_verifier={context.Variables.GetValueOrDefault("codeVerifier")}");
+            sb.Append($"&client_assertion_type={context.Variables.GetValueOrDefault("clientAssertionType")}");
+            sb.Append($"&client_assertion={context.Variables.GetValueOrDefault("ficToken")}");
+            return sb.ToString();
         }</set-body>
         <rewrite-uri template="/token" />
     </inbound>
