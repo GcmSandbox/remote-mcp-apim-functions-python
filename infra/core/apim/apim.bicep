@@ -88,6 +88,41 @@ resource apimLogger 'Microsoft.ApiManagement/service/loggers@2021-12-01-preview'
   }
 }
 
+resource apimDiagnostics 'Microsoft.ApiManagement/service/diagnostics@2024-06-01-preview' = if (!empty(appInsightsName)) {
+  parent: apimService
+  name: 'applicationinsights'
+  properties: {
+    alwaysLog: 'allErrors'
+    loggerId: apimLogger.id
+    logClientIp: true
+    verbosity: 'Information'
+    backend: {
+      request: {
+        body: {
+          bytes: 8192
+        }
+      }
+      response: {
+        body: {
+          bytes: 8192
+        }
+      }
+    }
+    frontend: {
+      request: {
+        body: {
+          bytes: 8192
+        }
+      }
+      response: {
+        body: {
+          bytes: 8192
+        }
+      }
+    }
+  }
+}
+
 // ------------------
 //    OUTPUTS
 // ------------------
