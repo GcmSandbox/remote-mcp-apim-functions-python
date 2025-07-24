@@ -8,9 +8,9 @@ services:
     project: ./auth/
     language: python
     host: function
-    module: ./auth-server
+    resourceGroup: ${AZURE_PREFIX}-${AZURE_ENV_NAME}auth-${AZURE_SUFFIX}
   app:
     project: ./app/
     language: python
     host: function
-    module: ./app
+    resourceGroup: ${AZURE_PREFIX}-${AZURE_ENV_NAME}app-${AZURE_SUFFIX}

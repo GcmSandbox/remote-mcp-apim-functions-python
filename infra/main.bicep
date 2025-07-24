@@ -16,9 +16,12 @@ param environmentName string
 })
 param location string
 
+param prefix string
+param suffix string
+
 var tags = { 'azd-env-name': environmentName }
 
-var authResourceGroupName = 'gcmdev-${environmentName}auth-dev'
+var authResourceGroupName = '${prefix}-${environmentName}auth-${suffix}'
 // Organize resources in a resource group
 resource authResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: authResourceGroupName
@@ -35,7 +38,7 @@ module authServer './auth-server/auth-server.bicep' = {
   }
 }
 
-var appResourceGroupName = 'gcmdev-${environmentName}app-dev'
+var appResourceGroupName = '${prefix}-${environmentName}app-${suffix}'
 // Organize resources in a resource group
 resource appResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: appResourceGroupName

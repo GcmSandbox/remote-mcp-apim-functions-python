@@ -86,6 +86,16 @@ def snippet_get(file: func.InputStream, context) -> str:
 )
 @app.generic_output_binding(arg_name="file", type="blob", connection="AzureWebJobsStorage", path=_BLOB_PATH)
 def snippet_save(file: func.Out[str], context) -> str:
+    """
+    Saves a snippet by name to Azure Blob Storage.
+
+    Args:
+        file (func.Out[str]): The output binding to write the snippet to Azure Blob Storage.
+        context: The trigger context containing the input arguments.
+
+    Returns:
+        str: The status of the snippet save or an error message.
+    """
     content = json.loads(context)
     if "arguments" not in content:
         return "No arguments provided"

@@ -7,6 +7,12 @@
     },
     "location": {
       "value": "${AZURE_LOCATION}"
+    },
+    "prefix": {
+      "value": "${AZURE_PREFIX}"
+    },
+    "suffix": {
+      "value": "${AZURE_SUFFIX}"
     }
   }
 }
