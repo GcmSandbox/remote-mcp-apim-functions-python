@@ -6,17 +6,25 @@
 <policies>
     <inbound>
         <base />
-        <check-header name="Authorization" failed-check-httpcode="401" failed-check-error-message="Not authorized" ignore-case="false" />
-
-        <!--
-            check cache with the Authorization header
-            if cache miss
-                hit auth server exchange endpoint with Authorization header + x-mcp-identifier header
-                if response 200, cache response
-            set authorization header
-            set x-functions-key (from named value)
-        -->
-
+        <choose>
+            <when condition="@(context.Request.Headers.GetValueOrDefault("Authorization") == null)">
+                <return-response>
+                    <set-status code="401" reason="Unauthorized" />
+                    <set-header name="Content-Type" exists-action="override">
+                        <value>application/json</value>
+                    </set-header>
+                    <set-header name="WWW-Authenticate" exists-action="override">
+                        <value>Bearer resource_metadata="{{APIMGatewayURL}}/.well-known/oauth-protected-resource"</value>
+                    </set-header>
+                    <set-body>@{
+                        var errorResponse = new JObject();
+                        errorResponse["error"] = "missing header";
+                        errorResponse["error_description"] = "Authorization header was missing";
+                        return errorResponse.ToString();
+                    }</set-body>
+                </return-response>
+            </when>
+        </choose>
         <!-- Get the user's Entra token from cache using the session key -->
         <cache-lookup-value key="@($"EntraToken-{context.Request.Headers.GetValueOrDefault("Authorization")}")" variable-name="cachedToken" />
         

@@ -14,9 +14,6 @@ param entraAppClientId string
 @description('The Identifier of the Entra application')
 param entraAppIdentifier string
 
-@description('The name of the MCP Server to display in the consent page')
-param mcpServerName string = 'MCP Server'
-
 @description('The Function App name')
 param functionAppName string
 
@@ -149,16 +146,6 @@ resource APIMGatewayURLNamedValue 'Microsoft.ApiManagement/service/namedValues@2
   properties: {
     displayName: 'APIMGatewayURL'
     value: apimService.properties.gatewayUrl
-    secret: false
-  }
-}
-
-resource MCPServerNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-08-01' = {
-  parent: apimService
-  name: 'MCPServerName'
-  properties: {
-    displayName: 'MCPServerName'
-    value: mcpServerName
     secret: false
   }
 }
