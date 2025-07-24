@@ -1,16 +1,10 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
 
-name: FullMcpApp
+name: McpAuth
 metadata:
-  template: FullMcpApp@1.0.0
+  template: McpAuth@1.0.0
 services:
   auth:
-    project: ./auth/
+    project: ../../auth/
     language: python
     host: function
-    module: ./auth-server
-  app:
-    project: ./app/
-    language: python
-    host: function
-    module: ./app

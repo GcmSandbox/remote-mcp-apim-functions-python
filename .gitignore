@@ -172,3 +172,9 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# ARM template files generated from Bicep
+*.json
+!main.parameters.json
+!abbreviations.json
+!bicepconfig.json

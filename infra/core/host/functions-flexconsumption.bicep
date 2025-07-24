@@ -9,8 +9,6 @@ param storageAccountName string
 param virtualNetworkSubnetId string = ''
 @allowed(['SystemAssigned', 'UserAssigned'])
 param identityType string
-@description('User assigned identity name')
-param identityId string
 
 // Runtime Properties
 @allowed([
@@ -27,9 +25,13 @@ param instanceMemoryMB int = 2048
 param maximumInstanceCount int = 100
 param deploymentStorageContainerName string
 
+param oauthClientId string = ''
+param oauthIdenifier string = ''
+
 resource stg 'Microsoft.Storage/storageAccounts@2022-09-01' existing = {
   name: storageAccountName
 }
+var storageConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${stg.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${stg.listKeys().keys[0].value}'
 
 resource functions 'Microsoft.Web/sites@2023-12-01' = {
   name: name
@@ -38,9 +40,6 @@ resource functions 'Microsoft.Web/sites@2023-12-01' = {
   kind: kind
   identity: {
     type: identityType
-    userAssignedIdentities: { 
-      '${identityId}': {}
-    }
   }
   properties: {
     serverFarmId: appServicePlanId
@@ -50,8 +49,8 @@ resource functions 'Microsoft.Web/sites@2023-12-01' = {
           type: 'blobContainer'
           value: '${stg.properties.primaryEndpoints.blob}${deploymentStorageContainerName}'
           authentication: {
-            type: identityType == 'SystemAssigned' ? 'SystemAssignedIdentity' : 'UserAssignedIdentity'
-            userAssignedIdentityResourceId: identityType == 'UserAssigned' ? identityId : '' 
+            type: 'StorageAccountConnectionString'
+            storageAccountConnectionStringName: 'AzureWebJobsStorage'
           }
         }
       }
@@ -71,8 +70,7 @@ resource functions 'Microsoft.Web/sites@2023-12-01' = {
     name: 'appsettings'
     properties: union(appSettings,
       {
-        AzureWebJobsStorage__accountName: stg.name
-        AzureWebJobsStorage__credential : 'managedidentity'
+        AzureWebJobsStorage: storageConnectionString
       },
       !empty(applicationInsightsName) ? {
         APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString
@@ -85,8 +83,48 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing
   name: applicationInsightsName
 }
 
+// Configure Easy Auth on the Function App with dedicated app registration
+resource functionAppAuthSettings 'Microsoft.Web/sites/config@2023-12-01' = if (!empty(oauthClientId)){
+  parent: functions
+  name: 'authsettingsV2'
+  properties: {
+    globalValidation: {
+      requireAuthentication: true
+      unauthenticatedClientAction: 'Return401'
+      excludedPaths: [
+        '/api/healthcheck'
+      ]
+    }
+    httpSettings: {
+      requireHttps: true
+      routes: {
+        apiPrefix: '/.auth'
+      }
+    }
+    identityProviders: {
+      azureActiveDirectory: {
+        enabled: true
+        registration: {
+          openIdIssuer: 'https://sts.windows.net/${tenant().tenantId}/'
+          clientId: oauthClientId
+        }
+        validation: {          
+          allowedAudiences: [
+            oauthClientId
+            oauthIdenifier
+          ]
+          // Allow any authenticated user with a valid token for this app
+        }
+      }
+    }
+    login: {
+      tokenStore: {
+        enabled: true
+      }
+    }
+  }
+}
+
 output name string = functions.name
 output uri string = 'https://${functions.properties.defaultHostName}'
 output identityPrincipalId string = identityType == 'SystemAssigned' ? functions.identity.principalId : ''
-@secure()
-output functionKey string = listKeys('${functions.id}/host/default', functions.apiVersion).functionKeys.default

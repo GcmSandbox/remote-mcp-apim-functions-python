@@ -1,0 +1,43 @@
+<!--
+    OAUTH METADATA POLICY
+    This policy implements the OpenID Connect and OAuth 2.0 discovery endpoint (.well-known/oauth-authorization-server).
+-->
+<policies>
+    <inbound>
+        <!-- Return the OAuth metadata in JSON format -->
+        <return-response>
+            <set-status code="200" reason="OK" />
+            <set-header name="Content-Type" exists-action="override">
+                <value>application/json; charset=utf-8</value>
+            </set-header>
+            <set-header name="access-control-allow-origin" exists-action="override">
+                <value>*</value>
+            </set-header>                
+            <set-body>
+                {
+                    "resource": "{{APIMGatewayURL}}",
+                    "resource_name": "{{FunctionAppName}}",
+                    "authorization_servers": [
+                        "{{AuthServerUrl}}"
+                    ],
+                    "bearer_methods_supported": [
+                        "header"
+                    ],
+                    "scopes_supported": [
+                        "user_impersonation"
+                    ]
+                }
+            </set-body>
+        </return-response>
+        <base />
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

@@ -16,6 +16,14 @@ param environmentName string
 })
 param location string
 
+// module main '../../main.bicep' = {
+//   name: 'main'
+//   params: {
+//     environmentName: environmentName
+//     location: location
+//   }
+// }
+
 var tags = { 'azd-env-name': environmentName }
 
 var authResourceGroupName = 'gcmdev-${environmentName}auth-dev'
@@ -27,29 +35,10 @@ resource authResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
 }
 
 // OAuth APIM service deployment
-module authServer './auth-server/auth-server.bicep' = {
+module authServer '../auth-server.bicep' = {
   name: 'authServer'
   scope: authResourceGroup
   params:{
     resourceGroupName: authResourceGroupName
-  }
-}
-
-var appResourceGroupName = 'gcmdev-${environmentName}app-dev'
-// Organize resources in a resource group
-resource appResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
-  name: appResourceGroupName
-  location: location
-  tags: tags
-}
-
-// OAuth APIM service deployment
-module mcpApp './app/app.bicep' = {
-  name: 'mcpApp'
-  scope: appResourceGroup
-  params:{
-    resourceGroupName: appResourceGroupName
-    authServerUrl: authServer.outputs.serverUrl
-    authServerIdentifier: authServer.outputs.serverIdentifier
   }
 }

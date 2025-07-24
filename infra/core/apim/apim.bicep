@@ -40,14 +40,8 @@ param apimLoggerDescription string  = 'APIM Logger for OpenAI API'
 ])
 param apimSku string = 'Basicv2'
 
-@description('The instrumentation key for Application Insights')
-param appInsightsInstrumentationKey string = ''
-
-@description('The resource ID for Application Insights')
-param appInsightsId string = ''
-
-@description('The name of the user-assigned managed identity used as entra app FIC')
-param entraAppUserAssignedIdentityName string = 'entra-app-user-assigned-identity'
+@description('The name for Application Insights')
+param appInsightsName string = ''
 
 // ------------------
 //    VARIABLES
@@ -57,12 +51,6 @@ param entraAppUserAssignedIdentityName string = 'entra-app-user-assigned-identit
 // ------------------
 //    RESOURCES
 // ------------------
-
-// Create a user-assigned managed identity
-resource entraAppUserAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: entraAppUserAssignedIdentityName
-  location: location
-}
 
 // https://learn.microsoft.com/azure/templates/microsoft.apimanagement/service
 resource apimService 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
@@ -77,26 +65,26 @@ resource apimService 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
     publisherName: publisherName
   }
   identity: {
-    type: 'SystemAssigned, UserAssigned'
-    userAssignedIdentities: {
-      // BCP037: Not yet added to latest API:
-      '${entraAppUserAssignedIdentity.id}': {}
-    } 
+    type: 'SystemAssigned'
   }
 }
 
+resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = if (!empty(appInsightsName)) {
+  name: appInsightsName
+}
+
 // Create a logger only if we have an App Insights ID and instrumentation key.
-resource apimLogger 'Microsoft.ApiManagement/service/loggers@2021-12-01-preview' = if (!empty(appInsightsId) && !empty(appInsightsInstrumentationKey)) {
+resource apimLogger 'Microsoft.ApiManagement/service/loggers@2021-12-01-preview' = if (!empty(appInsightsName)) {
   name: apimLoggerName
   parent: apimService
   properties: {
     credentials: {
-      instrumentationKey: appInsightsInstrumentationKey
+      instrumentationKey: appInsights.properties.InstrumentationKey
     }
     description: apimLoggerDescription
     isBuffered: false
     loggerType: 'applicationInsights'
-    resourceId: appInsightsId
+    resourceId: appInsights.id
   }
 }
 
@@ -108,5 +96,3 @@ output id string = apimService.id
 output name string = apimService.name
 output principalId string = apimService.identity.principalId
 output gatewayUrl string = apimService.properties.gatewayUrl
-output entraAppUserAssignedIdentityPrincipleId string = entraAppUserAssignedIdentity.properties.principalId
-output entraAppUserAssignedIdentityClientId string = entraAppUserAssignedIdentity.properties.clientId
