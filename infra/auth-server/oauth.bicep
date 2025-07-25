@@ -265,6 +265,9 @@ resource exchangePolicy 'Microsoft.ApiManagement/service/apis/operations/policie
     format: 'rawxml'
     value: loadTextContent('exchange.policy.xml')
   }
+  dependsOn: [
+    cryptoValuesScript
+  ]
 }
 
 // Add a POST operation for the register endpoint

@@ -30,12 +30,14 @@ resource entraIdentifierNamedValue 'Microsoft.ApiManagement/service/namedValues@
   }
 }
 
+var keys = listKeys('${functionApp.id}/host/default', functionApp.apiVersion)
+var key = keys.systemKeys.?mcp_extension ?? keys.masterKey
 resource functionAppKeyNamedValue 'Microsoft.ApiManagement/service/namedValues@2021-08-01' = {
   parent: apimService
   name: 'FunctionMcpKey'
   properties: {
     displayName: 'FunctionMcpKey'
-    value: listKeys('${functionApp.id}/host/default', functionApp.apiVersion).systemKeys.mcp_extension
+    value: key
     secret: true
   }
 }

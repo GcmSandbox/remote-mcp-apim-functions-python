@@ -79,6 +79,10 @@ module mcpApiModule './mcp-api.bicep' = {
     authServerUrl: authServerUrl
     authServerIdentifier: authServerIdentifier
   }
+  dependsOn:[
+    apimService
+    app
+  ]
 }
 
 // Backing storage for Azure functions api

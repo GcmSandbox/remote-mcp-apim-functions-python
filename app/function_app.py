@@ -1,5 +1,3 @@
-
-from dataclasses import dataclass
 import json
 import logging
 
@@ -13,11 +11,18 @@ _SNIPPET_PROPERTY_NAME = "snippet"
 _BLOB_PATH = "snippets/{mcptoolargs." + _SNIPPET_NAME_PROPERTY_NAME + "}.json"
 
 
-@dataclass
 class ToolProperty:
-    propertyName: str
-    propertyType: str
-    description: str
+    def __init__(self, property_name: str, property_type: str, description: str):
+        self.propertyName = property_name
+        self.propertyType = property_type
+        self.description = description
+
+    def to_dict(self):
+        return {
+            "propertyName": self.propertyName,
+            "propertyType": self.propertyType,
+            "description": self.description,
+        }
 
 
 # Define the tool properties using the ToolProperty class
@@ -29,8 +34,8 @@ tool_properties_save_snippets_object = [
 tool_properties_get_snippets_object = [ToolProperty(_SNIPPET_NAME_PROPERTY_NAME, "string", "The name of the snippet.")]
 
 # Convert the tool properties to JSON
-tool_properties_save_snippets_json = json.dumps([prop.__dict__ for prop in tool_properties_save_snippets_object])
-tool_properties_get_snippets_json = json.dumps([prop.__dict__ for prop in tool_properties_get_snippets_object])
+tool_properties_save_snippets_json = json.dumps([prop.to_dict() for prop in tool_properties_save_snippets_object])
+tool_properties_get_snippets_json = json.dumps([prop.to_dict() for prop in tool_properties_get_snippets_object])
 
 
 @app.generic_trigger(
@@ -40,7 +45,7 @@ tool_properties_get_snippets_json = json.dumps([prop.__dict__ for prop in tool_p
     description="Hello world.",
     toolProperties="[]",
 )
-def hello_mcp(context) -> str:
+def hello_mcp(context) -> None:
     """
     A simple function that returns a greeting message.
 
@@ -61,7 +66,7 @@ def hello_mcp(context) -> str:
     toolProperties=tool_properties_get_snippets_json,
 )
 @app.generic_input_binding(arg_name="file", type="blob", connection="AzureWebJobsStorage", path=_BLOB_PATH)
-def snippet_get(file: func.InputStream, context) -> str:
+def get_snippet(file: func.InputStream, context) -> str:
     """
     Retrieves a snippet by name from Azure Blob Storage.
 
@@ -73,7 +78,7 @@ def snippet_get(file: func.InputStream, context) -> str:
         str: The content of the snippet or an error message.
     """
     snippet_content = file.read().decode("utf-8")
-    logging.info("Retrieved snippet: %s", snippet_content)
+    logging.info(f"Retrieved snippet: {snippet_content}")
     return snippet_content
 
 
@@ -85,23 +90,10 @@ def snippet_get(file: func.InputStream, context) -> str:
     toolProperties=tool_properties_save_snippets_json,
 )
 @app.generic_output_binding(arg_name="file", type="blob", connection="AzureWebJobsStorage", path=_BLOB_PATH)
-def snippet_save(file: func.Out[str], context) -> str:
-    """
-    Saves a snippet by name to Azure Blob Storage.
-
-    Args:
-        file (func.Out[str]): The output binding to write the snippet to Azure Blob Storage.
-        context: The trigger context containing the input arguments.
-
-    Returns:
-        str: The status of the snippet save or an error message.
-    """
+def save_snippet(file: func.Out[str], context) -> str:
     content = json.loads(context)
-    if "arguments" not in content:
-        return "No arguments provided"
-
-    snippet_name_from_args = content["arguments"].get(_SNIPPET_NAME_PROPERTY_NAME)
-    snippet_content_from_args = content["arguments"].get(_SNIPPET_PROPERTY_NAME)
+    snippet_name_from_args = content["arguments"][_SNIPPET_NAME_PROPERTY_NAME]
+    snippet_content_from_args = content["arguments"][_SNIPPET_PROPERTY_NAME]
 
     if not snippet_name_from_args:
         return "No snippet name provided"
@@ -110,6 +102,5 @@ def snippet_save(file: func.Out[str], context) -> str:
         return "No snippet content provided"
 
     file.set(snippet_content_from_args)
-    logging.info("Saved snippet: %s", snippet_content_from_args)
+    logging.info(f"Saved snippet: {snippet_content_from_args}")
     return f"Snippet '{snippet_content_from_args}' saved successfully"
-
