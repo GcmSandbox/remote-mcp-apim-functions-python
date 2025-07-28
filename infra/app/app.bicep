@@ -24,6 +24,7 @@ module apimService '../core/apim/apim.bicep' = {
   params:{
     apiManagementName: apimServiceName
     appInsightsName: monitoring.outputs.applicationInsightsName
+    bytesToLog: { frontEndRequest: 8192, backEndRequest: 8192, frontEndResponse: 128, backendResponse: 128 }
   }
 }
 

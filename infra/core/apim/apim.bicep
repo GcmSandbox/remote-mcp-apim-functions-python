@@ -43,6 +43,8 @@ param apimSku string = 'Basicv2'
 @description('The name for Application Insights')
 param appInsightsName string = ''
 
+param bytesToLog object = { frontEndRequest: 8192, backEndRequest: 8192, frontEndResponse: 8192, backendResponse: 8192 }
+
 // ------------------
 //    VARIABLES
 // ------------------
@@ -99,24 +101,24 @@ resource apimDiagnostics 'Microsoft.ApiManagement/service/diagnostics@2024-06-01
     backend: {
       request: {
         body: {
-          bytes: 8192
+          bytes: bytesToLog.backEndRequest
         }
       }
       response: {
         body: {
-          bytes: 8192
+          bytes: bytesToLog.backendResponse
         }
       }
     }
     frontend: {
       request: {
         body: {
-          bytes: 8192
+          bytes: bytesToLog.frontEndRequest
         }
       }
       response: {
         body: {
-          bytes: 8192
+          bytes: bytesToLog.frontEndResponse
         }
       }
     }
